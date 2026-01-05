@@ -10,10 +10,10 @@ __pycache__/
 .env
 
 # data
-data/*
-*.csv
-*.txt
-*.parquet
+# data/*
+# *.csv
+# *.txt
+# *.parquet
 
 # MEDIA_ROOT, MEDIA_URL
 media/*
