@@ -18,7 +18,10 @@ print(parquet_df.shape)
 
 start_time = time.time()
 # CSV
-csv_df =pl.read_csv(csv_data_file_path)
+csv_df =pl.read_csv(
+    csv_data_file_path,
+    infer_schema_length=0, # 全ての列を str として読み込む pandas の dtype=str に相当
+    )
 #
 end_time = time.time()
 elapsed_time = end_time - start_time
@@ -27,7 +30,10 @@ print(csv_df.shape)
 
 start_time = time.time()
 # CSV
-pd_csv_df =pd.read_csv(csv_data_file_path)
+pd_csv_df =pd.read_csv(
+    csv_data_file_path,
+    dtype=str, # 全ての列を str として読み込む
+    )
 #
 end_time = time.time()
 elapsed_time = end_time - start_time

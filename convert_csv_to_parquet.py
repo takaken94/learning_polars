@@ -34,22 +34,6 @@ def setup_logging() -> None:
 
 logger = logging.getLogger(__name__)
 
-def load_dataframe(file_path: str, encoding: str, has_header: bool = False, separator: str = ",") -> pl.DataFrame:
-    """指定されたパスからCSVファイルを読み込み、Polarsデータフレームを返す。"""
-    try:
-        return pl.read_csv(
-            file_path,
-            encoding=encoding,
-            has_header=has_header,
-            separator=separator,
-        )
-    except FileNotFoundError:
-        logging.error(f"ファイルが見つかりません: {file_path}")
-        exit(1)
-    except Exception as e:
-        logging.error(f"ファイル読み込み中にエラーが発生しました: {e}")
-        exit(1)
-
 """
 メイン処理
 """
@@ -58,27 +42,55 @@ def main():
     setup_logging()
 
     # --- 設定 ---
-    # データファイル
-    data_file_path = "data/22_shizuoka_all_20251226.csv"
-    data_encoding = "utf-8"
+    # 入力ファイル
+    in_file_path = "data/22_shizuoka_all_20251226.csv"
+    in_file_encoding = "utf-8"
 
     # 列名定義ファイル
     col_name_file_path = "data/column_name.txt"
     col_name_file_encoding = "utf-8"
-    target_col_name_in_file = "column_name_en"
+    target_col_name = "column_name_en"
+
 
     # 出力ファイル
     out_csv_file_path = "data/22_shizuoka_all.csv"
     out_parq_file_path = "data/22_shizuoka_all.parquet"
 
     # --- 処理 ---
-    # データの読み込み
-    df = load_dataframe(data_file_path, data_encoding, has_header=False)
+    # 入力ファイルの読み込み
+    try:
+        df = pl.read_csv(
+            source=in_file_path,
+            encoding=in_file_encoding,
+            has_header=False,
+            separator=",",
+            infer_schema_length=0, # 全ての列を str として読み込む pandas の dtype=str に相当
+        )
+    except FileNotFoundError:
+        logging.error(f"ファイルが見つかりません: {in_file_path}")
+        exit(1)
+    except Exception as e:
+        logging.error(f"ファイル読み込み中にエラーが発生しました: {e}")
+        exit(1)
     logging.info(f"データの読み込み完了 {df.shape}")
 
     # 列名マスタの読み込み
-    col_name_df = load_dataframe(col_name_file_path, col_name_file_encoding, has_header=True, separator="\t")
-    new_cols = col_name_df[target_col_name_in_file].to_list()
+    try:
+        col_name_df = pl.read_csv(
+            source=col_name_file_path,
+            encoding=col_name_file_encoding,
+            has_header=True,
+            separator="\t",
+        )
+    except FileNotFoundError:
+        logging.error(f"列名定義ファイルが見つかりません: {col_name_file_path}")
+        exit(1)
+    except Exception as e:
+        logging.error(f"列名定義ファイルの読み込み中にエラーが発生しました: {e}")
+        exit(1)
+    logging.info(f"列名定義ファイルの読み込み完了 {col_name_df.shape}")
+    new_cols = col_name_df[target_col_name].to_list()
+
     # 列名の設定
     if len(df.columns) == len(new_cols):
         old_cols = df.columns
