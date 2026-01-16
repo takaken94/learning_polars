@@ -1,38 +1,10 @@
 import polars as pl
 import logging
+import sys
 from pathlib import Path
+from logging_config import setup_logging
 
-# ロギング設定
-def setup_logging() -> None:
-    log_dir = Path("logs")
-    log_dir.mkdir(exist_ok=True)
-
-    log_file = log_dir / "app.log"
-
-    formatter = logging.Formatter(
-        "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
-    )
-
-    # ルートロガー
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
-
-    # コンソール出力
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(formatter)
-
-    # ファイル出力
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(formatter)
-
-    # 二重登録防止（重要）
-    if not root_logger.handlers:
-        root_logger.addHandler(console_handler)
-        root_logger.addHandler(file_handler)
-
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(Path(__file__).stem)
 
 """
 メイン処理
@@ -67,12 +39,12 @@ def main():
             infer_schema_length=0, # 全ての列を str として読み込む pandas の dtype=str に相当
         )
     except FileNotFoundError:
-        logging.error(f"ファイルが見つかりません: {in_file_path}")
-        exit(1)
+        logger.exception(f"ファイルが見つかりません: {in_file_path}")
+        sys.exit(1)
     except Exception as e:
-        logging.error(f"ファイル読み込み中にエラーが発生しました: {e}")
-        exit(1)
-    logging.info(f"データの読み込み完了 {df.shape}")
+        logger.exception(f"ファイル読み込み中にエラーが発生しました")
+        sys.exit(1)
+    logger.info(f"データの読み込み完了 {df.shape}")
 
     # 列名マスタの読み込み
     try:
@@ -83,12 +55,12 @@ def main():
             separator="\t",
         )
     except FileNotFoundError:
-        logging.error(f"列名定義ファイルが見つかりません: {col_name_file_path}")
-        exit(1)
+        logger.exception(f"列名定義ファイルが見つかりません: {col_name_file_path}")
+        sys.exit(1)
     except Exception as e:
-        logging.error(f"列名定義ファイルの読み込み中にエラーが発生しました: {e}")
-        exit(1)
-    logging.info(f"列名定義ファイルの読み込み完了 {col_name_df.shape}")
+        logger.exception(f"列名定義ファイルの読み込み中にエラーが発生しました")
+        sys.exit(1)
+    logger.info(f"列名定義ファイルの読み込み完了 {col_name_df.shape}")
     new_cols = col_name_df[target_col_name].to_list()
 
     # 列名の設定
@@ -96,20 +68,24 @@ def main():
         old_cols = df.columns
         df = df.rename(dict(zip(old_cols, new_cols)))
     else:
-        logging.error("データフレームの列数と新しい列名の数が一致しません。データフレームの列数: {len(df.columns)}, 新しい列名の数: {len(new_cols)}")
-        exit(1)
+        logger.error(f"データフレームの列数と新しい列名の数が一致しません。"
+                     f"データフレームの列数: {len(df.columns)}, 新しい列名の数: {len(new_cols)}")
+        sys.exit(1)
 
     # --- 処理 ---
     # データの保存
     try:
         df.write_csv(out_csv_file_path)
     except Exception as e:
-        logging.error(f"CSVファイルの保存中にエラーが発生しました: {e}")
+        logger.exception(f"CSVファイルの保存中にエラーが発生しました")
 
     try:
         df.write_parquet(out_parq_file_path)
     except Exception as e:
-        logging.error(f"Parquetファイルの保存中にエラーが発生しました: {e}")
+        logger.exception(f"Parquetファイルの保存中にエラーが発生しました")
+    
+    # --- 終了 ---
+    logger.info("処理が正常に完了しました")
 
 if __name__ == "__main__":
     main()
