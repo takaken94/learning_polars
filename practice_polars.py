@@ -10,8 +10,6 @@ def main():
     try:
         df = pl.read_csv(
             source=in_file_path,
-            has_header=True,
-            separator=",",
             infer_schema_length=0, # 全ての列を str として読み込む pandas の dtype=str に相当
         )
     except FileNotFoundError:
@@ -29,7 +27,6 @@ def main():
         "closeDate",
         "assignmentDate",
     ]
-
     df = df.with_columns(
         pl.col(date_cols)
         .str.strptime(pl.Date, "%Y-%m-%d", strict=True)
@@ -61,26 +58,17 @@ def main():
     print(f"フィルタリング後 {result_df.shape}")
     result_df.write_csv("data/out_polars3.csv")
 
-    # # 集計
-    # result = (
-    #     df.group_by("cityName")
-    #     .agg(
-    #         pl.len().alias("count")
-    #     )
-    #     .sort("count", descending=True)
-    #     .head(10)
-    # )
-    # pl.Config.set_tbl_rows(100)
-    # print(f"集計結果: {result}")
-
-    # # 検索
-    # filterd_df = df.filter(
-    #     pl.col("name").str.contains("お茶", literal=True)
-    # )
-    # print(f"フィルタリング後 {filterd_df.shape}")
-
-    # # 結果の保存
-    # filterd_df.write_csv(out_file_path)
+    # 集計
+    result = (
+        df.group_by("cityName")
+        .agg(
+            pl.len().alias("count")
+        )
+        .sort("count", descending=True)
+        .head(10)
+    )
+    pl.Config.set_tbl_rows(100)
+    print(f"集計結果: {result}")
 
 if __name__ == "__main__":
     main()

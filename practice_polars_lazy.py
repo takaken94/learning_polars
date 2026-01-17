@@ -6,7 +6,7 @@ def main():
     in_file_path = "data/11_saitama_all.csv"
 
     # --- 処理 ---
-    q = (
+    query = (
         pl.scan_csv(
             source=in_file_path,
             infer_schema_length=0, # 全ての列を str として読み込む pandas の dtype=str に相当
@@ -16,11 +16,12 @@ def main():
         .agg(pl.len().alias("count"))
         .sort("count", descending=True)
     )
-    print(q.explain())
 
-    # df = q.collect()
-    # pl.Config.set_tbl_rows(100)
-    # print(df)
+    df = query.collect()
+    pl.Config.set_tbl_rows(100)
+    print(df)
+
+    print(query.explain())
 
 if __name__ == "__main__":
     main()
